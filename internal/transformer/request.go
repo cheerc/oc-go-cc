@@ -154,6 +154,31 @@ func HasThinkingBlocks(messages []types.Message) bool {
 //     → enable on first turn (no assistant messages), disable only when
 //     safety guard fires (DeepSeek + history assistant msgs lack thinking).
 //  4. No config, no history → leave both unset.
+// budgetTokensToEffort maps Anthropic budget_tokens to OpenAI reasoning_effort.
+func budgetTokensToEffort(budget int) string {
+	switch {
+	case budget <= 2048:
+		return "low"
+	case budget <= 8192:
+		return "medium"
+	case budget <= 32768:
+		return "high"
+	default:
+		return "max"
+	}
+}
+
+// parseBudgetTokens extracts budget_tokens from a thinking JSON field.
+func parseBudgetTokens(thinking json.RawMessage) int {
+	var m struct {
+		BudgetTokens int `json:"budget_tokens"`
+	}
+	if err := json.Unmarshal(thinking, &m); err != nil {
+		return 0
+	}
+	return m.BudgetTokens
+}
+
 func resolveThinkingAndEffort(
 	anthropicReq *types.MessageRequest,
 	model config.ModelConfig,
@@ -164,8 +189,19 @@ func resolveThinkingAndEffort(
 	explicitThinking := len(model.Thinking) > 0
 	explicitEffort := model.ReasoningEffort != ""
 	isDeepSeek := isDeepSeekModel(model.ModelID)
+	requestThinking := !isThinkingDisabled(anthropicReq.Thinking) && len(anthropicReq.Thinking) > 0
 
 	switch {
+	case requestThinking:
+		// Client explicitly opted into thinking mode via the request
+		// (e.g., effortLevel in Claude Code sends thinking: {type:"enabled", budget_tokens:N}).
+		// Forward the raw thinking config and map budget_tokens to reasoning_effort.
+		openaiReq.Thinking = anthropicReq.Thinking
+		if budget := parseBudgetTokens(anthropicReq.Thinking); budget > 0 {
+			effort := budgetTokensToEffort(budget)
+			openaiReq.ReasoningEffort = &effort
+		}
+
 	case hasThinking:
 		// History has thinking blocks — maintain continuity.
 		if explicitThinking {
