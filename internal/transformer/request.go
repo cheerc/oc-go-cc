@@ -34,6 +34,8 @@ func isDeepSeekModel(modelID string) bool {
 	return strings.HasPrefix(modelID, "deepseek-")
 }
 
+
+
 // needsPlaceholderReasoning returns true for providers whose validators require
 // a non-empty reasoning_content field on assistant tool-call messages.
 func needsPlaceholderReasoning(modelID string) bool {
@@ -41,6 +43,13 @@ func needsPlaceholderReasoning(modelID string) bool {
 	return strings.HasPrefix(modelID, "kimi-")
 }
 
+
+// stripCacheControl removes cache_control from all messages in the list.
+func stripCacheControl(messages []types.ChatMessage) {
+	for i := range messages {
+		messages[i].CacheControl = nil
+	}
+}
 // TransformRequest converts an Anthropic MessageRequest to OpenAI ChatCompletionRequest.
 func (t *RequestTransformer) TransformRequest(
 	anthropicReq *types.MessageRequest,
@@ -52,6 +61,11 @@ func (t *RequestTransformer) TransformRequest(
 		return nil, fmt.Errorf("failed to transform messages: %w", err)
 	}
 
+
+	// Strip cache_control for models that don't support it
+	if !isDeepSeekModel(model.ModelID) {
+		stripCacheControl(messages)
+	}
 	// Build OpenAI request
 	openaiReq := &types.ChatCompletionRequest{
 		Model:    model.ModelID,
