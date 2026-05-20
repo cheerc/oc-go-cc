@@ -222,7 +222,16 @@ func (h *MessagesHandler) HandleMessages(w http.ResponseWriter, r *http.Request)
 		}
 		if scenarioErr == nil {
 			scenarioChain := scenarioResult.GetModelChain()
-			modelChain = append(modelChain, scenarioChain...)
+			existing := make(map[string]bool)
+			for _, m := range modelChain {
+				existing[m.ModelID] = true
+			}
+			for _, m := range scenarioChain {
+				if !existing[m.ModelID] {
+					modelChain = append(modelChain, m)
+					existing[m.ModelID] = true
+				}
+			}
 		}
 	}
 

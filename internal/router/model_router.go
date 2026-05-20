@@ -75,7 +75,7 @@ func (r *ModelRouter) RouteWithOverride(requestedModel string) (RouteResult, boo
 	return RouteResult{
 		Primary:   override,
 		Fallbacks: fallbacks,
-		Scenario:  "override",
+		Scenario:  ScenarioOverride,
 	}, true
 }
 

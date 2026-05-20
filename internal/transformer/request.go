@@ -35,10 +35,7 @@ func isDeepSeekModel(modelID string) bool {
 }
 
 
-// supportsCacheControl returns true for models known to accept the cache_control field.
-func supportsCacheControl(modelID string) bool {
-	return isDeepSeekModel(modelID)
-}
+
 // needsPlaceholderReasoning returns true for providers whose validators require
 // a non-empty reasoning_content field on assistant tool-call messages.
 func needsPlaceholderReasoning(modelID string) bool {
@@ -66,7 +63,7 @@ func (t *RequestTransformer) TransformRequest(
 
 
 	// Strip cache_control for models that don't support it
-	if !supportsCacheControl(model.ModelID) {
+	if !isDeepSeekModel(model.ModelID) {
 		stripCacheControl(messages)
 	}
 	// Build OpenAI request
