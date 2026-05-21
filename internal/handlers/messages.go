@@ -190,12 +190,13 @@ func (h *MessagesHandler) HandleMessages(w http.ResponseWriter, r *http.Request)
 	}
 
 	if !isOverride {
+		requestedModel := anthropicReq.Model
 		if isStreaming && !h.modelRouter.IsStreamingScenarioRoutingEnabled() {
 			// Streaming: use faster models to minimize TTFT (time-to-first-token)
-			routeResult = h.modelRouter.RouteForStreaming(routerMessages, tokenCount)
+			routeResult = h.modelRouter.RouteForStreaming(routerMessages, tokenCount, requestedModel)
 		} else {
 			var err error
-			routeResult, err = h.modelRouter.Route(routerMessages, tokenCount)
+			routeResult, err = h.modelRouter.Route(routerMessages, tokenCount, requestedModel)
 			if err != nil {
 				h.sendError(w, http.StatusInternalServerError, "routing failed", err)
 				return
@@ -217,9 +218,9 @@ func (h *MessagesHandler) HandleMessages(w http.ResponseWriter, r *http.Request)
 		var scenarioResult router.RouteResult
 		var scenarioErr error
 		if isStreaming && !h.modelRouter.IsStreamingScenarioRoutingEnabled() {
-			scenarioResult = h.modelRouter.RouteForStreaming(routerMessages, tokenCount)
+			scenarioResult = h.modelRouter.RouteForStreaming(routerMessages, tokenCount, "")
 		} else {
-			scenarioResult, scenarioErr = h.modelRouter.Route(routerMessages, tokenCount)
+			scenarioResult, scenarioErr = h.modelRouter.Route(routerMessages, tokenCount, "")
 		}
 		if scenarioErr == nil {
 			scenarioChain := scenarioResult.GetModelChain()
