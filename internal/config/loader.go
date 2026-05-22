@@ -140,6 +140,12 @@ func applyDefaults(cfg *Config) {
 	if cfg.Logging.Level == "" {
 		cfg.Logging.Level = defaultLogLevel
 	}
+	if cfg.Fallbacks == nil {
+		cfg.Fallbacks = make(map[string][]ModelConfig)
+	}
+	if cfg.ModelOverrides == nil {
+		cfg.ModelOverrides = make(map[string]ModelConfig)
+	}
 }
 
 // validate checks that all required configuration fields are present.
